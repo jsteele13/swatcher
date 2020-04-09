@@ -15,7 +15,7 @@ class state(object):
 
 	def __init__(self):
 		self.errorCount = 0
-		self.currentLowestFare = None 
+		self.currentLowestFare = None
 		self.blockQuery = False
 		self.firstQuery = True
 		self.notificationHistory = ''
@@ -27,9 +27,9 @@ class swatcher(object):
 	def __init__(self):
 		self.state = []
 		self.config = None
-	
+
 	def now(self):
-		return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') 
+		return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 	def parseArguments(self):
 
@@ -41,17 +41,16 @@ class swatcher(object):
 			default = DEFAULT_CONFIGURATION_FILE)
 
 		args = parser.parse_args()
-
 		return args
 
 	def initializeHistory(self, index):
-		
-		tripHistory = os.linesep + "Trip Details:" 
+
+		tripHistory = os.linesep + "Trip Details:"
 		ignoreKeys = ['index', 'description']
 		for key in self.config.trips[index].__dict__:
 			if(any(x in key for x in ignoreKeys)):
 				continue
-			tripHistory += os.linesep + "   " + key + ": " + str(self.config.trips[index].__dict__[key]) 
+			tripHistory += os.linesep + "   " + key + ": " + str(self.config.trips[index].__dict__[key])
 
 		if(self.config.historyFileBase):
 			try:
@@ -87,10 +86,10 @@ class swatcher(object):
 			# If in here, this is the first notification, so add details to notification and see if history is enabled
 			self.state[index].notificationHistory = self.initializeHistory(index)
 			self.appendHistoryFile(index, self.now() + ": Monitoring started")
-			self.state[index].notificationHistory = self.now() + ": Monitoring started" + os.linesep + self.state[index].notificationHistory 
+			self.state[index].notificationHistory = self.now() + ": Monitoring started" + os.linesep + self.state[index].notificationHistory
 
-		shortMessage = self.now() + ": " + message 
-		self.state[index].notificationHistory = shortMessage + os.linesep + self.state[index].notificationHistory 
+		shortMessage = self.now() + ": " + message
+		self.state[index].notificationHistory = shortMessage + os.linesep + self.state[index].notificationHistory
 		self.appendHistoryFile(index, shortMessage)
 
 		if(self.config.notification.type == 'smtp'):
@@ -106,12 +105,12 @@ class swatcher(object):
 					server = smtplib.SMTP(self.config.notification.host, self.config.notification.port)
 
 				mailMessage = """From: %s\nTo: %s\nX-Priority: 2\nSubject: %s\n\n""" % (self.config.notification.sender, self.config.notification.recipient, subject)
-				mailMessage += self.state[index].notificationHistory		
-			
+				mailMessage += self.state[index].notificationHistory
+
 				server.sendmail(self.config.notification.sender, self.config.notification.recipient, mailMessage)
 				server.quit()
 
-			except Exception as e: 
+			except Exception as e:
 				print(self.now() + ": UNABLE TO SEND NOTIFICATION DUE TO ERROR - " + str(e))
 			return
 		elif(self.config.notification.type == 'twilio'):
@@ -121,11 +120,11 @@ class swatcher(object):
 
 				client = twilio.rest.Client(self.config.notification.accountSid, self.config.notification.authToken)
 				client.messages.create(to = self.config.notification.recipient, from_ = self.config.notification.sender, body = subject)
-			except Exception as e: 
+			except Exception as e:
 				print(self.now() + ": UNABLE TO SEND NOTIFICATION DUE TO ERROR - " + str(e))
 			return
- 	
- 
+
+
 	def findLowestFareInSegment(self,trip, segment):
 
 		lowestCurrentFare = None
@@ -133,7 +132,7 @@ class swatcher(object):
 		specificFlights = []
 		if(trip.specificFlights):
 			specificFlights = [x.strip() for x in trip.specificFlights.split(',')]
-	
+
 		for flight in segment:
 
 				# If flight is sold-out or otherwise unavailable, no reason to process further
@@ -143,7 +142,7 @@ class swatcher(object):
 				# Now, see if looking for specificFlights - if this is set, all other rules do not matter...
 			if(len(specificFlights) and (flight['flight'] not in specificFlights)):
 				continue
-				
+
 			if(trip.maxStops < flight['stops']):
 				continue
 
@@ -190,7 +189,7 @@ class swatcher(object):
 			self.state[trip.index].blockQuery = True;
 			return True
 		except swa.scrapeTimeout as e:
-				# This could be a few things - internet or SWA website is down. 
+				# This could be a few things - internet or SWA website is down.
 				# it could also mean my WebDriverWait conditional is incorrect/changed. Don't know
 				# what to do about this, so for now, just print to screen and try again at next loop
 			print(self.now() + ": Timeout waiting for results, will retry next loop")
@@ -202,7 +201,7 @@ class swatcher(object):
 				self.state[trip.index].blockQuery = True;
 				self.sendNotification(trip.index, "Ceasing queries due to frequent errors")
 			return True
-			
+
 			# If here, successfully scraped, so reset errorCount
 		self.state[trip.index].errorCount = 0
 
@@ -214,7 +213,7 @@ class swatcher(object):
 				break;
 			lowestFare = lowestSegmentFare if (lowestFare is None) else lowestFare + lowestSegmentFare
 			priceCount += 1
-		
+
 		if(((lowestFare is not None) and (trip.maxPrice > 0) and (lowestFare > trip.maxPrice)) or (priceCount != len(segments))):
 			lowestFare = None
 
@@ -244,8 +243,8 @@ class swatcher(object):
 				else:
 					self.sendNotification(trip.index, "Daily alert fare is $" + str(lowestFare))
 				self.state[trip.index].dailyAlertDate = datetime.datetime.now().date()
-					
-		return True	
+
+		return True
 
 
 	def processTrips(self, driver):
@@ -263,7 +262,7 @@ class swatcher(object):
 			print(self.now() + ": Stopping swatcher as there are no remaining trips to monitor")
 			return False
 
-		return True	
+		return True
 
 	def main(self):
 
@@ -276,9 +275,9 @@ class swatcher(object):
 			print("Error in processing configuration file: " + str(e))
 			quit()
 
-		self.state = [state() for i in xrange(len(self.config.trips))]	
+		self.state = [state() for i in xrange(len(self.config.trips))]
 
-			
+
 
 		if(self.config.browser.type == 'chrome'): # Or Chromium
 			options = selenium.webdriver.ChromeOptions()
@@ -294,18 +293,18 @@ class swatcher(object):
 		else:
 			print("Unsupported web browser '" + browser.type + "' specified")
 			quit()
-			
+
 
 		while True:
-		
+
 			if(not self.processTrips(driver)):
 				break
 
 			time.sleep(self.config.pollInterval * 60)
 
 		return
-	
+
 if __name__ == "__main__":
-	swatcher = swatcher()	
+	swatcher = swatcher()
 
 	swatcher.main()
